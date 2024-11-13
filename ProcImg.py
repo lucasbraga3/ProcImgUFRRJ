@@ -17,7 +17,7 @@ def display_image(img, original=False):
     img_pil = Image.fromarray(img)
     img_width, img_height = img_pil.size
     max_size = 500
-    img_pil.thumbnail((max_size, max_size)) 
+    img_pil.thumbnail((max_size, max_size))
     img_tk = ImageTk.PhotoImage(img_pil)
     canvas_width, canvas_height = max_size, max_size
     x_offset = (canvas_width - img_pil.width) // 2
@@ -32,15 +32,6 @@ def display_image(img, original=False):
         edited_image_canvas.image = img_tk
         edited_image_canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=img_tk)
 
-def load_image():
-    global img_np
-    file_path = filedialog.askopenfilename()
-    if file_path:
-        img_pil = Image.open(file_path)
-        img_np = np.array(img_pil)
-        display_image(img_np, original=True)
-        refresh_canvas()
-
 def apply_filter(filter_type):
     global img_np
     if img_np is None:
@@ -48,7 +39,6 @@ def apply_filter(filter_type):
 
     if filter_type in ("erosion", "dilation", "opening", "closing"):
         filtered_img = morphological_transform(img_np, filter_type)
-    
     elif filter_type == "low_pass":
         img_pil = Image.fromarray(img_np).filter(ImageFilter.GaussianBlur(2))
         filtered_img = np.array(img_pil)
@@ -56,13 +46,19 @@ def apply_filter(filter_type):
         img_laplacian = high_pass_filter(img_np)
         filtered_img = img_laplacian
     elif filter_type == "ideal_lowpass":
-        img_gray = np.dot(img_np[...,:3], [0.2989, 0.5870, 0.1140])
+        img_gray = np.dot(img_np[..., :3], [0.2989, 0.5870, 0.1140])
         filtered_img = ideal_filter(img_gray, "lowpass", D0=40)
-        filtered_img = np.stack([filtered_img]*3, axis=-1).astype(np.uint8)  # Convertendo para RGB
+        filtered_img = np.stack([filtered_img] * 3, axis=-1).astype(np.uint8)
     elif filter_type == "ideal_highpass":
-        img_gray = np.dot(img_np[...,:3], [0.2989, 0.5870, 0.1140])
+        img_gray = np.dot(img_np[..., :3], [0.2989, 0.5870, 0.1140])
         filtered_img = ideal_filter(img_gray, "highpass", D0=40)
-        filtered_img = np.stack([filtered_img]*3, axis=-1).astype(np.uint8)  # Convertendo para RGB
+        filtered_img = np.stack([filtered_img] * 3, axis=-1).astype(np.uint8)
+    elif filter_type == "threshold":
+        filtered_img = thresholding(img_np)
+    elif filter_type == "adaptive_threshold":
+        filtered_img = adaptive_thresholding(img_np)
+    else:
+        raise ValueError("Unsupported filter type")
 
     display_image(filtered_img, original=False)
 
@@ -145,6 +141,29 @@ def opening(image, kernel):
 
 def closing(image, kernel):
     return erosion(dilation(image, kernel), kernel)
+
+def thresholding(img_np):
+    gray_img = np.dot(img_np[..., :3], [0.2989, 0.5870, 0.1140])
+    threshold = 100
+    binary_img = (gray_img > threshold).astype(np.uint8) * 255
+    return binary_img
+
+def adaptive_thresholding(img_np):
+    gray_img = np.dot(img_np[..., :3], [0.2989, 0.5870, 0.1140])
+    block_size = 11
+    C = 2
+
+    thresholded_img = np.zeros_like(gray_img)
+    for i in range(gray_img.shape[0]):
+        for j in range(gray_img.shape[1]):
+            local_region = gray_img[max(0, i - block_size // 2):min(i + block_size // 2 + 1, gray_img.shape[0]),
+                                     max(0, j - block_size // 2):min(j + block_size // 2 + 1, gray_img.shape[1])]
+            mean = np.mean(local_region)
+            thresholded_img[i, j] = 255 if gray_img[i, j] > mean - C else 0
+
+    thresholded_img_rgb = np.stack([thresholded_img] * 3, axis=-1).astype(np.uint8)
+    return thresholded_img_rgb
+
 def refresh_canvas():
     edited_image_canvas.delete("all")
 
