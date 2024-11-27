@@ -43,8 +43,16 @@ def apply_filter(filter_type):
         img_pil = Image.fromarray(img_np).filter(ImageFilter.GaussianBlur(2))
         filtered_img = np.array(img_pil)
     elif filter_type == "high_pass":
-        img_laplacian = high_pass_filter(img_np)
-        filtered_img = img_laplacian
+        img_gray = np.dot(img_np[...,:3], [0.2989, 0.5870, 0.1140])
+        #Laplaciano na escala cinza
+        img_laplacian = np.abs(np.gradient(np.gradient(img_gray)[0])[0])
+        #Normalização
+        img_laplacian = (img_laplacian - np.min(img_laplacian)) / (np.max(img_laplacian) - np.min(img_laplacian))
+        #Intensidade 
+        img_laplacian = img_laplacian * 255 
+        #Conversão para RGB
+        filtered_img = np.stack([img_laplacian] * 3, axis=-1)
+        filtered_img = np.clip(filtered_img, 0, 255).astype(np.uint8)
     elif filter_type == "ideal_lowpass":
         img_gray = np.dot(img_np[..., :3], [0.2989, 0.5870, 0.1140])
         filtered_img = ideal_filter(img_gray, "lowpass", D0=40)
@@ -84,17 +92,6 @@ def morphological_transform(img_np, transform_type):
     # Convert back to RGB and clip values
     morphed_img_rgb = np.stack([morphed_img] * 3, axis=-1).astype(np.uint8)
     return np.clip(morphed_img_rgb, 0, 255)
-def high_pass_filter(img_np):
-    img_np = img_np.astype(np.float32)  # Converte para float32 para evitar overflow
-    kernel = np.array([[0, -1, 0], [-1, 4, -1], [0, -1, 0]])
-    img_laplacian = np.zeros_like(img_np)
-    
-    # Corrigindo a convolução para imagens coloridas
-    for c in range(3):  # Aplicar o filtro em cada canal (RGB)
-        img_laplacian[:, :, c] = np.abs(np.convolve(img_np[:, :, c].flatten(), kernel.flatten(), mode='same')).reshape(img_np[:, :, c].shape)
-        
-    img_laplacian = np.clip(img_laplacian, 0, 255).astype(np.uint8)
-    return img_laplacian
 
 def ideal_filter(img_gray, filter_type, D0=40):
     F = np.fft.fft2(img_gray)
