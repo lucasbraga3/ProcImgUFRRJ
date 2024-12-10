@@ -2,7 +2,6 @@ import tkinter as tk
 from tkinter import filedialog
 from PIL import Image, ImageTk, ImageFilter
 import numpy as np
-from scipy.ndimage import binary_erosion, binary_dilation, generate_binary_structure
 
 def load_image():
     global img_np
@@ -72,11 +71,11 @@ def apply_filter(filter_type):
 
 
 def morphological_transform(img_np, transform_type):
-    # Convert to grayscale
+    
     gray_img = np.dot(img_np[..., :3], [0.2989, 0.5870, 0.1140])
 
-    # Define structuring element (kernel)
-    kernel = np.ones((3, 3), dtype=np.uint8)  # Adjust size as needed
+ 
+    kernel = np.ones((3, 3), dtype=np.uint8)  
 
     if transform_type == "erosion":
         morphed_img = erosion(gray_img, kernel)
@@ -165,7 +164,7 @@ def refresh_canvas():
     edited_image_canvas.delete("all")
 
 root = tk.Tk()
-root.title("Image Processing App")
+root.title("App de processamento de Imagens")
 root.geometry("1085x550")
 root.config(bg="#2e2e2e")
 img_np = None
@@ -174,23 +173,23 @@ menu_bar = tk.Menu(root)
 root.config(menu=menu_bar)
 
 file_menu = tk.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label="File", menu=file_menu)
-file_menu.add_command(label="Load Image", command=load_image)
+menu_bar.add_cascade(label="Arquico", menu=file_menu)
+file_menu.add_command(label="Carregar Imagem", command=load_image)
 file_menu.add_separator()
 file_menu.add_command(label="Exit", command=root.quit)
 
 filters_menu = tk.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label="Filters", menu=filters_menu)
-filters_menu.add_command(label="Low Pass Filter", command=lambda: apply_filter("low_pass"))
-filters_menu.add_command(label="High Pass Filter", command=lambda: apply_filter("high_pass"))
-filters_menu.add_command(label="Ideal Low Pass Filter", command=lambda: apply_filter("ideal_lowpass"))
-filters_menu.add_command(label="Ideal High Pass Filter", command=lambda: apply_filter("ideal_highpass"))
-filters_menu.add_command(label="Erosion", command=lambda: apply_filter("erosion"))
-filters_menu.add_command(label="Dilation", command=lambda: apply_filter("dilation"))
-filters_menu.add_command(label="Opening", command=lambda: apply_filter("opening"))
-filters_menu.add_command(label="Closing", command=lambda: apply_filter("closing"))
+menu_bar.add_cascade(label="Filtros simples", menu=filters_menu)
+filters_menu.add_command(label="Filtro Passa-Baixa", command=lambda: apply_filter("low_pass"))
+filters_menu.add_command(label="Filtro Passa-Alta", command=lambda: apply_filter("high_pass"))
+filters_menu.add_command(label="Filtro Passa-Baixa Ideal", command=lambda: apply_filter("ideal_lowpass"))
+filters_menu.add_command(label="Filtro Passa-Alta Ideal", command=lambda: apply_filter("ideal_highpass"))
+filters_menu.add_command(label="Erosao", command=lambda: apply_filter("erosion"))
+filters_menu.add_command(label="Dilatacao", command=lambda: apply_filter("dilation"))
+filters_menu.add_command(label="Abertura", command=lambda: apply_filter("opening"))
+filters_menu.add_command(label="Fechamento", command=lambda: apply_filter("closing"))
 filters_menu.add_command(label="Thresholding", command=lambda: apply_filter("threshold"))
-filters_menu.add_command(label="Adaptive Thresholding", command=lambda: apply_filter("adaptive_threshold"))
+filters_menu.add_command(label="Thresholding Adaptativo", command=lambda: apply_filter("adaptive_threshold"))
 
 original_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
 original_image_canvas.grid(row=0, column=0, padx=20, pady=20)

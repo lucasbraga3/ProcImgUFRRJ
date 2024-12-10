@@ -1,4 +1,3 @@
-
 # ProcImgUFRRJ  
-
+##### OBS: ProcImg.py são filtros comuns feitos de forma manual e ProcImgSliders.py contém os  mesmos filtros, mas com a possibilidade de ajustar os filtros em tempo real através de sliders, todos os filtros (exceto os ideais) nesta versão são implementados utilizando a biblioteca open cv por questões de otimização.
 Um projeto  de processamento de imagens em python feito para demonstrar manipulação de imagens em tempo real como: filtros passa-alta, passa-baixa, operações morfológicas e técnicas de segmentação. 
