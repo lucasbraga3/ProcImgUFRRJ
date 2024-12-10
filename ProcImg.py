@@ -173,10 +173,10 @@ menu_bar = tk.Menu(root)
 root.config(menu=menu_bar)
 
 file_menu = tk.Menu(menu_bar, tearoff=0)
-menu_bar.add_cascade(label="Arquico", menu=file_menu)
+menu_bar.add_cascade(label="Arquivo", menu=file_menu)
 file_menu.add_command(label="Carregar Imagem", command=load_image)
 file_menu.add_separator()
-file_menu.add_command(label="Exit", command=root.quit)
+file_menu.add_command(label="Sair", command=root.quit)
 
 filters_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Filtros simples", menu=filters_menu)

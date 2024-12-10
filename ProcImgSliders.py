@@ -1,8 +1,11 @@
 import tkinter as tk
 from tkinter import filedialog
+from tkinter.simpledialog import askstring
 from PIL import Image, ImageTk
 import numpy as np
 import cv2 
+
+recipientImage = None
 
 def load_image():
   global img_np
@@ -12,6 +15,26 @@ def load_image():
     img_np = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)  # Converter para RGB afim de exibir corretamente
     display_image(img_np, original=True)
     refresh_canvas()
+
+def download_image():
+  global recipientImage
+  if(recipientImage is not None):
+    recipientImage = Image.fromarray(recipientImage)
+    imagename = "output.jpg"
+    imagename = askstring("Nome da imagem", "Digite o nome da imagem")
+    imagename += ".jpg"
+    recipientImage.save("./" + imagename)
+  tk.messagebox.showinfo("Sucesso", "Imagem salva com sucesso")
+
+def swap_image():
+  global img_np
+  global recipientImage
+  if recipientImage is None:
+    tk.messagebox.showerror("Erro", "Nenhuma imagem foi processada")
+    return
+  img_np = recipientImage
+  display_image(img_np, original=True)
+  refresh_canvas()
 
 def display_image(img, original=False):
   img_pil = Image.fromarray(img)
@@ -34,6 +57,7 @@ def display_image(img, original=False):
 
 def apply_filter(filter_type, value=None):
   global img_np
+  global recipientImage
   if img_np is None:
     return
 
@@ -42,6 +66,7 @@ def apply_filter(filter_type, value=None):
     kernel_size = value if value is not None else 3  # Tamanho padrao de kernel
     kernel = np.ones((kernel_size, kernel_size), np.float32) / (kernel_size**2)
     filtered_img = cv2.filter2D(img_np, -1, kernel)
+    recipientImage = filtered_img
   elif filter_type == "high_pass":
     ksize = value if value is not None else 1  # Tamanho padrao de kernel
     if ksize % 2 == 0:  # Detalhe: Kernel deve ser impar
@@ -49,6 +74,8 @@ def apply_filter(filter_type, value=None):
     filtered_img = cv2.Laplacian(img_np, cv2.CV_64F, ksize=ksize)
     filtered_img = cv2.convertScaleAbs(filtered_img)
     filtered_img = cv2.cvtColor(filtered_img, cv2.COLOR_RGB2GRAY)
+    filtered_img = cv2.cvtColor(filtered_img, cv2.COLOR_GRAY2RGB)
+    recipientImage = filtered_img
   elif filter_type == "ideal_lowpass":
     D0 = value if value is not None else 40  # Frequencia de corte padrao
     filtered_img = np.zeros_like(img_np)
@@ -56,6 +83,7 @@ def apply_filter(filter_type, value=None):
       channel = img_np[:, :, i]
       filtered_channel = ideal_filter(channel, "lowpass", D0)
       filtered_img[:, :, i] = filtered_channel
+      recipientImage = filtered_img
   elif filter_type == "ideal_highpass":
     D0 = value if value is not None else 40  # Frequencia de corte padrao
     filtered_img = np.zeros_like(img_np)
@@ -63,6 +91,7 @@ def apply_filter(filter_type, value=None):
       channel = img_np[:, :, i]
       filtered_channel = ideal_filter(channel, "highpass", D0)
       filtered_img[:, :, i] = filtered_channel
+      recipientImage = filtered_img
   elif filter_type in ("erosion", "dilation", "opening", "closing"):
     kernel_size = value if value is not None else 3  # Tamanho padrao de kernel
     kernel = np.ones((kernel_size, kernel_size), np.uint8)
@@ -78,11 +107,13 @@ def apply_filter(filter_type, value=None):
       elif filter_type == "closing":
         filtered_channel = cv2.morphologyEx(channel, cv2.MORPH_CLOSE, kernel)
       filtered_img[:, :, i] = filtered_channel
+      recipientImage = filtered_img
   elif filter_type == "thresholding":
     gray_img = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
     threshold_value = value if value is not None else 127  # threshold padrao
     ret, thresh = cv2.threshold(gray_img, threshold_value, 255, cv2.THRESH_BINARY)
     filtered_img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2RGB)
+    recipientImage = filtered_img
   elif filter_type == "adaptive_thresholding":
     gray_img = cv2.cvtColor(img_np, cv2.COLOR_RGB2GRAY)
     block_size = value if value is not None else 11 # Tamanho do bloco padrao
@@ -91,6 +122,7 @@ def apply_filter(filter_type, value=None):
       block_size += 1
     thresh = cv2.adaptiveThreshold(gray_img, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, block_size, C)
     filtered_img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2RGB)
+    recipientImage = filtered_img
   else:
     raise ValueError("Unsupported filter type")
 
@@ -153,9 +185,9 @@ root.config(menu=menu_bar)
 file_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Arquivo", menu=file_menu)
 file_menu.add_command(label="Carregar Imagem", command=load_image)
+file_menu.add_command(label="Salvar Imagem", command=download_image)
 file_menu.add_separator()
-file_menu.add_command(label="Exit", command=root.quit)
-
+file_menu.add_command(label="Sair", command=root.quit)
 filters_menu = tk.Menu(menu_bar, tearoff=0)
 menu_bar.add_cascade(label="Filtros simples", menu=filters_menu)
 filters_menu.add_command(label="Filtro Passa-Baixa", command=lambda: apply_filter("low_pass"))
@@ -168,7 +200,7 @@ filters_menu.add_command(label="Abertura", command=lambda: apply_filter("opening
 filters_menu.add_command(label="Fechamento", command=lambda: apply_filter("closing"))
 filters_menu.add_command(label="Thresholding", command=lambda: apply_filter("thresholding"))
 filters_menu.add_command(label="Thresholding Adaptativo", command=lambda: apply_filter("adaptive_thresholding"))
-
+menu_bar.add_command(label="Aplicar mais uma camada de filtro", command=swap_image)
 original_image_canvas = tk.Canvas(root, width=500, height=500, bg="#2e2e2e", highlightthickness=1, highlightbackground="white")
 original_image_canvas.grid(row=0, column=0, padx=20, pady=10)
 
